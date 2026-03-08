@@ -1,0 +1,87 @@
+import time
+import numpy as np
+import pybullet as p
+from gym_pybullet_drones.envs.BaseAviary import BaseAviary
+from gym_pybullet_drones.utils.enums import ObservationType, ActionType
+
+class RacingGateAviary(BaseAviary):
+    """
+    自定义的无人机竞速环境。
+    继承自 BaseAviary，方便后续直接接入 Stable-Baselines3。
+    """
+    def __init__(self, **kwargs):
+        super().__init__(
+            obs=ObservationType.KIN, # 使用运动学向量作为状态输入 (非图像)
+            act=ActionType.RPM,      # 动作空间输出为 4 个电机的 RPM
+            **kwargs
+        )
+
+    def _addObstacles(self):
+        """
+        覆盖父类方法：在环境中动态生成穿越门。
+        每次环境 reset() 时都会调用此方法，非常适合做赛道的随机化。
+        """
+        super()._addObstacles() # 加载默认的地面
+
+        # --- 门 1 的参数设置 ---
+        gate_x = 1.0     # 门位于无人机正前方 1 米处
+        gate_y = 0.0     # 左右居中
+        gate_z = 0.5     # 门中心离地高度 0.5 米
+        
+        width = 0.8      # 门框内径宽度 0.8 米
+        height = 0.8     # 门框内径高度 0.8 米
+        thickness = 0.05 # 门框边柱的厚度 5 厘米
+
+        # 颜色设置为亮红色 (RGBA)
+        red_color = [1, 0, 0, 1]
+
+        # 1. 创建左侧立柱
+        p.createMultiBody(
+            baseMass=0, # 质量为 0 代表它是静态障碍物（Static Object），受到撞击不会移动
+            baseCollisionShapeIndex=p.createCollisionShape(p.GEOM_BOX, halfExtents=[thickness, thickness, height/2]),
+            baseVisualShapeIndex=p.createVisualShape(p.GEOM_BOX, halfExtents=[thickness, thickness, height/2], rgbaColor=red_color),
+            basePosition=[gate_x, gate_y - width/2, gate_z]
+        )
+        
+        # 2. 创建右侧立柱
+        p.createMultiBody(
+            baseMass=0,
+            baseCollisionShapeIndex=p.createCollisionShape(p.GEOM_BOX, halfExtents=[thickness, thickness, height/2]),
+            baseVisualShapeIndex=p.createVisualShape(p.GEOM_BOX, halfExtents=[thickness, thickness, height/2], rgbaColor=red_color),
+            basePosition=[gate_x, gate_y + width/2, gate_z]
+        )
+        
+        # 3. 创建顶部横梁
+        p.createMultiBody(
+            baseMass=0,
+            baseCollisionShapeIndex=p.createCollisionShape(p.GEOM_BOX, halfExtents=[thickness, width/2 + thickness, thickness]),
+            baseVisualShapeIndex=p.createVisualShape(p.GEOM_BOX, halfExtents=[thickness, width/2 + thickness, thickness], rgbaColor=red_color),
+            basePosition=[gate_x, gate_y, gate_z + height/2]
+        )
+        
+        # 记录门中心的绝对坐标，稍后会被用于奖励函数的计算
+        self.target_gate_pos = np.array([gate_x, gate_y, gate_z])
+
+if __name__ == "__main__":
+    # 测试运行代码 (仅用于视觉验证，开启 GUI)
+    env = RacingGateAviary(gui=True)
+    
+    # 关闭多余的侧边栏 UI，只看 3D 画面
+    p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+    
+    # 调整相机视角，从侧后方俯视无人机和门
+    p.resetDebugVisualizerCamera(cameraDistance=1.5, cameraYaw=-30, cameraPitch=-30, cameraTargetPosition=[0.5, 0, 0.5])
+
+    env.reset()
+    
+    print("\n[环境加载完毕] 你应该能看到正前方有一个红色的矩形门。")
+    print("当前为怠速状态，无人机会因重力自由落体。")
+
+    # 运行 5 秒钟的物理仿真循环
+    for i in range(500): # 仿真频率通常为 100Hz
+        # 输入一个全为 0 的动作 (即四个电机停止转动)
+        # 此时无人机会掉到地上
+        env.step(np.zeros((1, 4))) 
+        time.sleep(0.01)
+        
+    env.close()
