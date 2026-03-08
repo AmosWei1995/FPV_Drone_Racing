@@ -24,9 +24,9 @@ class RacingGateAviary(BaseRLAviary):
         # super()._addObstacles() # 不加载默认障碍物，地面已在 BaseAviary._housekeeping 中加载
 
         # --- 门 1 的参数设置 ---
-        gate_x = 1.0     # 门位于无人机正前方 1 米处
-        gate_y = 0.0     # 左右居中
-        gate_z = 0.5     # 门中心离地高度 0.5 米
+        gate_x = 1.0     
+        gate_y = 0.0     
+        gate_z = 0.5     
         
         width = 0.8      # 门框内径宽度 0.8 米
         height = 0.8     # 门框内径高度 0.8 米
@@ -103,7 +103,8 @@ if __name__ == "__main__":
     print("当前为怠速状态（Action=0），无人机会尝试悬停或缓慢下落。")
 
     # 运行 5 秒钟的物理仿真循环
-    for i in range(500): 
+    # for i in range(500): 
+    while True:
         # 输入一个全为 0 的动作 (对应 HOVER_RPM)
         env.step(np.zeros((1, 4))) 
         time.sleep(0.01)
