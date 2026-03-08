@@ -1,0 +1,41 @@
+# --- VS Code ---
+.vscode/
+*.code-workspace
+# 特别忽略引起报错的数据库索引
+*.vc.db
+*.browse.vc.db
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+.venv
+env/
+venv/
+# 针对你的环境：忽略 Conda 目录
+.conda/
+
+# --- Jupyter Notebook ---
+.ipynb_checkpoints
+
+# --- 仿真与数据 (Robotics Specific) ---
+*.log
+*.sqlite
+*.db
+# 如果你的仿真产生大量轨迹数据，建议忽略或使用 LFS
+results/
+recordings/
+temp/
+
+# --- 机器学习权重 (可选) ---
+# 如果文件超过 100MB，请确保它们在这里
+*.pth
+*.pkl
+*.onnx
+*.h5
+
+# --- 系统文件 ---
+.DS_Store
+Thumbs.db
