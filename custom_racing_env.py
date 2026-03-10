@@ -10,7 +10,7 @@ class RacingGateAviary(BaseRLAviary):
     """
     def __init__(self, **kwargs):
         # 1. 定义赛道核心位置 (世界坐标)
-        self.START_POS = np.array([-1.5, 0, 0.1])       # 起点
+        self.START_POS = np.array([-1.5, 0, 0.2])       # 起点 z 从 0.1 提升到 0.2
         self.GATE_POS  = np.array([2.0, 0.0, 0.5])   # 穿越门中心
         self.FINISH_POS = np.array([6.5, 0.0, 0.1])  # 终点
         
@@ -24,11 +24,13 @@ class RacingGateAviary(BaseRLAviary):
         if 'initial_xyzs' not in kwargs:
             kwargs['initial_xyzs'] = self.START_POS.reshape(1, 3)
 
+        # 确保速度限制足够大
         super().__init__(
-            obs=ObservationType.KIN,
-            act=ActionType.RPM,
+            pyb_freq=480, # 提升物理频率
+            ctrl_freq=240, # 提升控制频率
             **kwargs
         )
+        self.SPEED_LIMIT = 10.0 # 目标 10 m/s
 
     def step(self, action):
         """覆盖 step 方法以实时更新 HUD。"""
@@ -116,26 +118,12 @@ class RacingGateAviary(BaseRLAviary):
             p.addUserDebugLine(start, end, color, physicsClientId=self.CLIENT)
 
     def _computeReward(self):
-        state = self._getDroneStateVector(0)
-        return -np.linalg.norm(self.FINISH_POS - state[0:3])
+        return 0
 
     def _computeTerminated(self):
-        state = self._getDroneStateVector(0)
-        if np.linalg.norm(self.FINISH_POS - state[0:3]) < 0.3:
-            print("\n--- [成功] 已到达终点区域！ ---")
-            return True
         return False
 
     def _computeTruncated(self):
-        state = self._getDroneStateVector(0)
-        pos = state[0:3]
-        out = (pos[0]<self.BOUNDS[0] or pos[0]>self.BOUNDS[1] or pos[1]<self.BOUNDS[2] or pos[1]>self.BOUNDS[3] or pos[2]<self.BOUNDS[4] or pos[2]>self.BOUNDS[5])
-        if out:
-            print("\n--- [警告] 飞出活动范围 ---")
-            return True
-        if self.step_counter / self.PYB_FREQ > 15:
-            print("\n--- [超时] 飞行超过 15 秒 ---")
-            return True
         return False
 
     def _computeInfo(self):
